@@ -7,4 +7,4 @@ dhcpd<br>
 httpd<br>
 named<br>
 
-It will provide zero touch provisioning services for cumulus linux switches by hosting onie-installer images,a ztp script,and CL license files.
+It will provide zero touch provisioning services for cumulus linux switches by hosting onie-installer images, a ztp script, and CL license files.
