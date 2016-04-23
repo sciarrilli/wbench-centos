@@ -1,0 +1,55 @@
+# httpd install and configure
+- name: install httpd
+  yum: name=httpd state=present
+  notify: restart httpd
+
+- name: create /var/www directory
+  file: path=/var/www state=directory mode=0755
+
+- name: create /var/www directory
+  file: path=/var/www/html/bootstrap state=directory mode=0755
+
+- name: copy ztp script
+  template: src=ztp.sh.j2 dest=/var/www/html/ztp.sh
+
+- name: copy ptm topology
+  copy: src=topology.dot dest=/var/www/html/topology.dot
+
+- name: copy license file
+  copy: src=license.lic dest=/var/www/html/license.lic
+
+- name: copy ssh public key to /var/www
+  shell: cp /home/cumulus/.ssh/id_rsa.pub /var/www/html/id_rsa.pub
+
+- name: put rename script in /var/www
+  copy: src=rename_eth_swp dest=/var/www/html/rename_eth_swp
+
+
+- name: copy onie install images to workbench
+  copy: src={{item}} dest=/var/www/html/{{item | basename}} owner=cumulus group=cumulus mode=0644
+  with_fileglob:
+    - /var/www/html/bootstrap/CumulusLinux*
+    - /var/www/html/bootstrap/CumulusLicense*
+
+- name: symlink the CL images to onie-installer TODO allow user to pick an image
+  file: src=/var/www/{{ item.original }} dest=/var/www/{{ item.target }} state=link
+  with_items:
+    - { original: 'CumulusLinux-{{ cumulus_version }}-amd64.bin', target: 'onie-installer-x86_64' }
+    - { original: 'CumulusLinux-{{ cumulus_version }}-powerpc.bin', target: 'onie-installer-powerpc' }
+  when: cumulus_version is defined
+
+- name: symlink the v1 license if we are using CL < 2.5.3
+  file: src=/var/www/CumulusLicense-v1 dest=/var/www/license.lic state=link
+  when: cumulus_version is defined and cumulus_version  < '2.5.3'
+
+- name: symlink the v2 license if we are using CL >= 2.5.3
+  file: src=/var/www/CumulusLicense-v2 dest=/var/www/license.lic state=link
+  when: cumulus_version is defined and cumulus_version  >= '2.5.3'
+
+- name: symlink the license again for each hostname
+  file: src=/var/www/license.lic dest=/var/www/{{ item.key }}.lic state=link
+  with_dict: "{{wbench_hosts}}"
+  when: cumulus_version is defined
+
+- name: put rename script in /var/www
+  copy: src=rename_eth_swp dest=/var/www/rename_eth_swp

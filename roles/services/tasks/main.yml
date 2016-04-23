@@ -1,0 +1,41 @@
+- name: configure dhcpd.conf
+  template: src=dhcpd.conf.j2 dest=/etc/dhcp/dhcpd.conf
+  notify: restart dhcpd
+
+- name: configure dhcpd.pool
+  template: src=dhcpd.pools.j2 dest=/etc/dhcp/dhcpd.pools
+  notify: restart dhcpd
+
+- name: configure dhcpd.hosts
+  template: src=dhcpd.hosts.j2 dest=/etc/dhcp/dhcpd.hosts
+  notify: restart dhcpd
+
+- name: update named.conf.locals named file
+  copy: src=named.conf.local dest=/etc/named/named.conf.local
+  notify: restart named
+
+- name: create named zone directory
+  file: path=/etc/named/zones state=directory mode=0755
+  notify: restart named
+
+- name: install db.lab.local zone
+  template: src=db.lab.local.j2 dest=/etc/named/zones/db.lab.local
+  notify: restart named
+
+- name: install reverse db.lab.local zone file
+  template: src=db.0.168.192.in-addr.arpa.j2 dest=/etc/named/zones/db.0.168.192.in-addr.arpa
+  notify: restart named
+
+- name: set up named forwarding
+  template: src=named.conf.options.j2 dest=/etc/named/named.conf.options
+  notify: restart named
+
+- name: make wbench use itself as DNS resolver
+  copy: src=resolv.conf dest=/etc/resolv.conf
+  notify: restart named
+
+- name: really restart named
+  meta: flush_handlers
+
+- name: pause and let named restart
+  pause: seconds=10

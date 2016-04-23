@@ -1,0 +1,44 @@
+# configure eth1
+- name: configure eth1
+  template: src=ifcfg-eth1.j2 dest=/etc/sysconfig/network-scripts/ifcfg-eth1
+
+- name: restart network for eth1
+  service: name=network state=restarted
+
+# add cumulus user
+- name: create cumulus
+  user: name=cumulus generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa
+
+# add motd
+- name: configure /etc/motd
+  copy: src=motd dest=/etc/motd
+
+# add color to bash
+- name: configure bash colors for user
+  copy: src=bashrc dest=/home/cumulus/.bashrc
+
+- name: configure bash colors for root
+  copy: src=bashrc dest=/root/.bashrc
+
+# install base packages
+- name: run yum update
+  yum: name=* state=latest
+
+- name: install yum packages
+  yum: name={{item}} state=present
+  with_items:
+    - net-tools
+    - dhcp
+    - bind
+    - epel-release
+    - git
+  notify: start services
+
+- name: install ansible
+  yum: name=ansible state=present
+
+# clone git repo
+- name: git clone cldemo-indie
+  git: repo=https://github.com/sciarrilli/cldemo-indie.git dest=/home/cumulus/cldemo-indie
+  become: yes
+  become_user: cumulus
